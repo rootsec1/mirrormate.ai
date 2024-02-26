@@ -29,7 +29,7 @@ export const TypewriterEffect = ({ words, className, cursorClassName }) => {
         }
       );
     }
-  }, [isInView]);
+  }, [isInView, animate]);
 
   const renderWords = () => {
     return (
@@ -105,6 +105,7 @@ export const TypewriterEffectSmooth = ({
             <div key={`word-${idx}`} className="inline-block">
               {word.text.map((char, index) => (
                 <span
+                  style={{ fontFamily: "Poppins", fontWeight: 400 }}
                   key={`char-${index}`}
                   className={cn(`dark:text-white text-black `, word.className)}
                 >
