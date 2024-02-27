@@ -1,7 +1,6 @@
 """Lichess API client."""
 
 import berserk
-import pandas as pd
 
 from tqdm import tqdm
 
