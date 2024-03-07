@@ -1,4 +1,3 @@
-import csv
 import sys
 import os
 import pandas as pd
@@ -24,7 +23,7 @@ def main():
     # Convert explode_game_into_moves to a dataframe
     exploded_game_df = pd.DataFrame(
         exploded_game_list,
-        columns=["input_sequence", "target_move"]
+        columns=["game_id", "input_sequence", "target_move"]
     )
 
     print("Exporting dataframe to CSV...")

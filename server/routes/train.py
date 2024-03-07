@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 # Local
-from util import get_cached_usernames
+from scripts.util import get_cached_usernames
 
 
 router = APIRouter()

@@ -2,8 +2,9 @@ import os
 import sys
 import pandas as pd
 
+
 # Local
-from services.lichess import get_games_and_moves_by_username
+from util import get_games_and_moves_by_username
 
 CURRENT_WORK_DIR = os.getcwd()
 
@@ -12,7 +13,6 @@ def main():
     lichess_username = str(sys.argv[-1]).strip()
     game_list = get_games_and_moves_by_username(lichess_username)
     df = pd.DataFrame(game_list)
-    df = df.dropna()
     df["white_player"] = df["white_player"].replace("", "ANONYMOUS")
     df["black_player"] = df["black_player"].replace("", "ANONYMOUS")
     df["winning_player"] = df["winning_player"].replace("", "ANONYMOUS")
