@@ -1,21 +1,97 @@
 import csv
 import os
 import berserk
-import torch
+import pandas as pd
+import google.generativeai as genai
+import chess
+import ollama
+import json
 
 from tqdm import tqdm
-from transformers import T5Tokenizer, T5ForConditionalGeneration
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
+
+
+from constants import LLM_NEXT_MOVE_PROMPT
 
 LICHESS_API_TOKEN = os.environ["LICHESS_API_TOKEN"]
 berserk_session = berserk.TokenSession(LICHESS_API_TOKEN)
 berserk_client = berserk.Client(session=berserk_session)
 
 
-__MODEL_DIR__ = "models/t5"
-# Load the trained model and tokenizer
-t5_small_model = T5ForConditionalGeneration.from_pretrained(__MODEL_DIR__)
-t5_small_tokenizer = T5Tokenizer.from_pretrained(__MODEL_DIR__)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def get_game_history_df(lichess_username: str) -> pd.DataFrame:
+    game_history_file_path = f"data/processed/sequence_target_map_{lichess_username}.csv"
+    game_history_df = pd.read_csv(game_history_file_path)
+    game_history_df = game_history_df.dropna()
+    return game_history_df
+
+
+def init_gemini_model() -> genai.GenerativeModel:
+    GOOGLE_API_KEY = os.environ["GEMINI_API_KEY"]
+    genai.configure(api_key=GOOGLE_API_KEY)
+    model = genai.GenerativeModel(
+        "gemini-pro",
+        safety_settings={
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        }
+    )
+    return model
+
+
+def compute_next_move(
+    partial_sequence: str,
+    game_history_df: pd.DataFrame,
+    model: genai.GenerativeModel
+) -> str:
+    partial_sequence_list = partial_sequence.split(" ")
+    formatted_partial_sequence = (" ".join(partial_sequence_list)).strip()
+
+    board = chess.Board()
+    for move in partial_sequence_list:
+        board.push_san(move)
+
+    subset_df = game_history_df[
+        game_history_df["input_sequence"] == formatted_partial_sequence
+    ]
+    if not subset_df.empty:
+        target_move = subset_df["target_move"].value_counts().idxmax()
+        return {
+            "predicted_move": target_move,
+            "source": "cache"
+        }
+
+    formatted_move_list = ""
+    for move in partial_sequence_list:
+        subset_df = game_history_df[
+            game_history_df["input_sequence"].str.startswith(move)
+        ]
+        input_sequence_str = subset_df["input_sequence"].tolist()
+        input_sequence_str = "\n".join(input_sequence_str)
+        formatted_move_list += input_sequence_str
+
+    # Get legal moves
+    legal_move_list = board.legal_moves
+    legal_move_list = set([board.san(move) for move in legal_move_list])
+
+    # Get the next move from the model
+    prompt = LLM_NEXT_MOVE_PROMPT.format(
+        formatted_move_list=formatted_move_list,
+        formatted_legal_move_list="\n".join(legal_move_list),
+        formatted_partial_sequence=formatted_partial_sequence
+    )
+
+    response = ollama.generate(
+        prompt=prompt,
+        model="gemma:2b",
+    )
+    response = str(response.get("response")).strip()
+    response = json.loads(response)
+    response = response["move"]
+    return {
+        "predicted_move": response,
+        "source": "model"
+    }
+
 
 
 def get_games_and_moves_by_username(username: str) -> list[dict]:
@@ -95,24 +171,3 @@ def explode_game_into_moves(game: dict, lichess_username: str) -> list[dict]:
         encoded_moves.append((game_id, input_sequence, target_move))
 
     return encoded_moves
-
-
-def predict_next_move_using_t5_model(sequence) -> str:
-    t5_small_model.to(device)
-
-    # Prepare the text input for T5 format
-    input_text = f"chess moves: {sequence}"
-    input_ids = t5_small_tokenizer.encode(
-        input_text,
-        return_tensors="pt"
-    ).to(device)
-
-    # Generate the output
-    output_ids = t5_small_model.generate(
-        input_ids,
-        max_length=16,
-        num_beams=8,
-        early_stopping=True
-    )
-    output = t5_small_tokenizer.decode(output_ids[0], skip_special_tokens=True)
-    return output

@@ -36,6 +36,8 @@ def compute_next_move(
     model: genai.GenerativeModel
 ) -> str:
     partial_sequence_list = partial_sequence.split(",")
+    formatted_partial_sequence = (" ".join(partial_sequence_list)).strip()
+
     board = chess.Board()
     for move in partial_sequence_list:
         board.push_san(move)
@@ -43,17 +45,21 @@ def compute_next_move(
 
     subset_df = game_history_df[
         game_history_df["move_list"]
-        .str.startswith(partial_sequence)
+        .str.startswith(formatted_partial_sequence)
     ]
-    filtered_move_list = subset_df["move_list"].str.split(" ").tolist()
+    filtered_move_list = subset_df["move_list"].tolist()
+
     formatted_move_list = ""
-    for move_list in filtered_move_list:
-        formatted_move_list += " ".join(move_list) + "\n"
+    for idx, move_list_str in enumerate(filtered_move_list):
+        formatted_move_list += f"Game {idx+1} = {move_list_str}\n"
+
     legal_move_list = board.legal_moves
     legal_move_list = set([board.san(move) for move in legal_move_list])
     formatted_legal_move_list = "\n".join(legal_move_list)
 
     prompt = f"""
+    [no prose]
+    [Output only the move in a JSON format with key: "move", value: WHATEVER_THE_MOST_LIKELY_MOVE_IS according to game history]
     You are a chess agent who can take on the persona of any player given their move history.
     You have been given the move history of a player who has played the following moves:
     {formatted_move_list}
@@ -61,33 +67,20 @@ def compute_next_move(
     These are the possible legal moves for the next move:
     {formatted_legal_move_list}
 
-    Understand the underlying patterns from the given game history and moves to make the best move.
-    Ensure that the move you make is legal and is in the list of possible legal moves.
-    Output only the move in the standard algebraic notation and absolutely nothing else.
+    Understand the underlying patterns from the given game history and moves to make the best move for the state: {formatted_partial_sequence}
+    Make a move using by looking into the patterns and the possible legal moves.
+    Emphasis on the copying the play style of the player given the move history.
     """
 
     t1 = time.time()
     response = ollama.generate(
-        system=f"""
-        [no prose]
-        [Output only JSON]
-        You are a chess agent who can take on the persona of any player given their move history.
-        You have been given the move history of a player who has played the following moves:
-        {formatted_move_list}
-        """,
         model="gemma:2b",
-        prompt=f"""
-        These are the possible legal moves for the next move:
-        {formatted_legal_move_list}
-
-        Understand the underlying patterns from the given game history and moves to make the best move.
-        Ensure that the move you make is legal and is in the list of possible legal moves.
-        Output only the move in a JSON format with key: "move", value: PREDICTED_MOVE 
-        """
+        prompt=prompt
     )
     t2 = time.time()
 
     response = str(response.get("response")).strip()
+    print(response)
     response = json.loads(response)
     predicted_move = response["move"]
     print(
