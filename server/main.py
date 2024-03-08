@@ -3,9 +3,11 @@ from fastapi import FastAPI
 
 # Local
 from routes.lichess import router as lichess_router
+from routes.train import router as train_router
 
 app = FastAPI()
 app.include_router(lichess_router, prefix="/lichess")
+app.include_router(train_router, prefix="/train")
 
 
 @app.get("/")

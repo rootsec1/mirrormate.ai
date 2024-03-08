@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 
 # Local
-from services.lichess import get_games_and_moves_by_username
+from scripts.util import get_games_and_moves_by_username
 
 router = APIRouter()
 

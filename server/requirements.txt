@@ -2,3 +2,13 @@ fastapi[all]
 berserk
 jupyter
 tqdm
+pandas
+transformers
+sentencepiece
+scikit-learn
+protobuf
+chess
+tensorflow
+google-generativeai
+stockfish
+ollama
