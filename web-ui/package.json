@@ -6,16 +6,23 @@
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
     "@mui/material": "^5.15.11",
+    "@tabler/icons-react": "^2.47.0",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "@tsparticles/engine": "^3.3.0",
+    "@tsparticles/react": "^3.0.0",
+    "@tsparticles/slim": "^3.3.0",
+    "axios": "^1.6.7",
+    "chess.js": "^1.0.0-beta.8",
     "clsx": "^2.1.0",
-    "framer-motion": "^11.0.6",
+    "framer-motion": "^11.0.8",
     "localforage": "^1.10.0",
     "match-sorter": "^6.3.4",
     "react": "^18.2.0",
+    "react-chessboard": "^4.4.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.22.1",
+    "react-router-dom": "^6.22.3",
     "react-scripts": "5.0.1",
     "sort-by": "^1.2.0",
     "tailwind-merge": "^2.2.1",
@@ -46,6 +53,7 @@
     ]
   },
   "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@babel/plugin-transform-private-property-in-object": "^7.23.4"
   }
 }

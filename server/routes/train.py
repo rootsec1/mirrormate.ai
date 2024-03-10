@@ -1,19 +1,30 @@
 from fastapi import APIRouter
 
 # Local
-from scripts.util import get_cached_usernames, get_game_history_df, init_gemini_model, compute_next_move
-
+from scripts.util import *
 
 router = APIRouter()
-__cached_username_set__ = get_cached_usernames()
-
 gemini_model = init_gemini_model()
 
 
 @router.get("/persona/{lichess_username}")
 async def train_persona(lichess_username: str):
-    """Train the model for the given lichess_username"""
-    return list(__cached_username_set__)
+    game_history_list = get_games_and_moves_by_username(lichess_username)
+    game_history_df = pd.DataFrame(game_history_list)
+    game_history_df["white_player"] = game_history_df["white_player"].replace(
+        "",
+        "ANONYMOUS"
+    )
+    game_history_df["black_player"] = game_history_df["black_player"].replace(
+        "",
+        "ANONYMOUS"
+    )
+    game_history_df["winning_player"] = game_history_df["winning_player"].replace(
+        "",
+        "ANONYMOUS"
+    )
+    game_history_df.to_csv(f"data/raw/games_{lichess_username}.csv")
+    return {"status": "CLONING_COMPLETE"}
 
 
 @router.get("/next-move/")

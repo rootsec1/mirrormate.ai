@@ -127,11 +127,11 @@ def get_games_and_moves_by_username(username: str) -> list[dict]:
 
 
 def get_cached_usernames() -> set[str]:
-    csv_list = os.listdir("data/processed")
+    csv_list = os.listdir("data/raw")
     csv_list = [csv_file for csv_file in csv_list if csv_file.endswith(".csv")]
     cached_username_set = set()
     for csv_file in csv_list:
-        username = csv_file.replace("sequence_target_map_", "")
+        username = csv_file.replace("games_", "")
         username = username.replace(".csv", "")
         cached_username_set.add(username)
     return cached_username_set
