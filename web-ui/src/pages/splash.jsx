@@ -134,7 +134,7 @@ export default function SplashPage() {
         </motion.h1>
 
         <TextGenerateEffect
-          words="Duplicate and Dominate Your Competition."
+          words="Duplicate and Dominate your competition in a game of Chess."
           className="text-3xl font-extralight"
         />
       </LampContainer>
