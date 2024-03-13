@@ -5,6 +5,11 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
+  Radio,
+  RadioGroup,
   TextField,
 } from "@mui/material";
 import axios from "axios";
@@ -47,7 +52,7 @@ function LichessUsernameInputDialogComponent({ isOpen, setIsOpen, onSubmit }) {
           event.preventDefault();
           const formData = new FormData(event.currentTarget);
           const formJson = Object.fromEntries(formData.entries());
-          onSubmit(formJson["lichess_username"]);
+          onSubmit(formJson);
         },
       }}
     >
@@ -57,17 +62,43 @@ function LichessUsernameInputDialogComponent({ isOpen, setIsOpen, onSubmit }) {
           To clone a persona, you need to enter the Lichess username of the
           opponent you want to clone.
         </DialogContentText>
-        <TextField
-          autoFocus
-          required
-          margin="dense"
-          id="name"
-          name="lichess_username"
-          label="Lichess username"
-          type="text"
-          fullWidth
-          variant="standard"
-        />
+
+        <FormControl fullWidth>
+          <TextField
+            autoFocus
+            required
+            margin="dense"
+            id="name"
+            name="username_self"
+            label="Your username"
+            type="text"
+            fullWidth
+            variant="standard"
+          />
+          <TextField
+            autoFocus
+            required
+            margin="dense"
+            id="name"
+            name="lichess_username_target"
+            label="Target Lichess username to clone"
+            type="text"
+            fullWidth
+            variant="standard"
+          />
+          <FormLabel id="row-radio-buttons-group-label" className="mt-4">
+            Play as
+          </FormLabel>
+          <RadioGroup
+            row
+            aria-labelledby="row-radio-buttons-group-label"
+            name="play_as_color"
+            value={"White"}
+          >
+            <FormControlLabel value="White" control={<Radio />} label="White" />
+            <FormControlLabel value="Black" control={<Radio />} label="Black" />
+          </RadioGroup>
+        </FormControl>
       </DialogContent>
       <DialogActions>
         <Button color="secondary" onClick={() => setIsOpen(false)}>
@@ -84,16 +115,16 @@ export default function SplashPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [username, setUsername] = useState(null);
 
-  async function triggerClonePersonaForUsername(lichessUsername) {
+  async function triggerClonePersonaForUsername(formJson) {
+    const lichessUsername = formJson["lichess_username_target"];
+
     const endpointUrl = `/train/persona/${lichessUsername}`;
     const apiResponse = await axios.get(endpointUrl);
     const apiResponseData = apiResponse.data;
     const cloningStatus = apiResponseData["status"];
     if (cloningStatus === "CLONING_COMPLETE") {
       navigate("game", {
-        state: {
-          lichessUsername,
-        },
+        state: formJson,
       });
     } else {
       setUsername(null);
@@ -104,10 +135,11 @@ export default function SplashPage() {
     setIsDialogOpen(true);
   }
 
-  function onSubmitLichessUsernameForm(lichessUsername) {
+  function onSubmitLichessUsernameForm(formJson) {
     setIsDialogOpen(false);
+    const lichessUsername = formJson["lichess_username_target"];
     setUsername(lichessUsername);
-    triggerClonePersonaForUsername(lichessUsername);
+    triggerClonePersonaForUsername(formJson);
   }
 
   return (
