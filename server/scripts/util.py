@@ -1,14 +1,18 @@
+import io
 import csv
 import os
 import berserk
 import pandas as pd
 import google.generativeai as genai
 import chess
+import chess.svg
 import ollama
 import json
 
+from PIL import Image
 from tqdm import tqdm
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+from stockfish import Stockfish
 
 
 from constants import LLM_NEXT_MOVE_PROMPT
@@ -17,10 +21,12 @@ LICHESS_API_TOKEN = os.environ["LICHESS_API_TOKEN"]
 berserk_session = berserk.TokenSession(LICHESS_API_TOKEN)
 berserk_client = berserk.Client(session=berserk_session)
 
+stockfish = Stockfish("/opt/homebrew/bin/stockfish")
+
 
 def get_game_history_df(lichess_username: str) -> pd.DataFrame:
     game_history_file_path = f"data/processed/sequence_target_map_{lichess_username}.csv"
-    game_history_df = pd.read_csv(game_history_file_path)
+    game_history_df = pd.read_csv(game_history_file_path, index_col=None)
     game_history_df = game_history_df.dropna()
     return game_history_df
 
@@ -29,7 +35,7 @@ def init_gemini_model() -> genai.GenerativeModel:
     GOOGLE_API_KEY = os.environ["GEMINI_API_KEY"]
     genai.configure(api_key=GOOGLE_API_KEY)
     model = genai.GenerativeModel(
-        "gemini-pro",
+        "models/gemini-pro",
         safety_settings={
             HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
             HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
@@ -65,7 +71,12 @@ def compute_next_move(
         subset_df = game_history_df[
             game_history_df["input_sequence"].str.startswith(move)
         ]
+        # Keep only the last row from that game_id in subset_df even if not a duplicate
+        subset_df = subset_df.drop_duplicates(subset=["game_id"], keep="last")
+        subset_df = subset_df[["input_sequence", "target_move"]]
+        subset_df = subset_df.drop_duplicates()
         input_sequence_str = subset_df["input_sequence"].tolist()
+
         input_sequence_str = "\n".join(input_sequence_str)
         formatted_move_list += input_sequence_str
 
@@ -80,18 +91,32 @@ def compute_next_move(
         formatted_partial_sequence=formatted_partial_sequence
     )
 
-    response = ollama.generate(
-        prompt=prompt,
-        model="gemma:2b",
-    )
-    response = str(response.get("response")).strip()
-    response = json.loads(response)
-    response = response["move"]
-    return {
-        "predicted_move": response,
-        "source": "model"
-    }
+    try:
+        response = model.generate_content(prompt)
+        response = str(response.text).strip()
+        # response = ollama.generate(
+        #     prompt=prompt,
+        #     model="gemma:2b",
+        # )
+        # response = str(response.get("response")).strip()
 
+        response = json.loads(response)
+        response = response["move"]
+        if response not in legal_move_list:
+            response = list(legal_move_list)[0]
+
+        return {
+            "predicted_move": response,
+            "source": "model"
+        }
+    except Exception as ex:
+        stockfish.set_fen_position(board.fen())
+        # Get the best move from Stockfish
+        best_move = stockfish.get_best_move()
+        return {
+            "predicted_move": best_move,
+            "source": "stockfish"
+        }
 
 
 def get_games_and_moves_by_username(username: str) -> list[dict]:

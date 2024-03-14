@@ -24,6 +24,23 @@ async def train_persona(lichess_username: str):
         "ANONYMOUS"
     )
     game_history_df.to_csv(f"data/raw/games_{lichess_username}.csv")
+
+    exploded_game_list = []
+    for game in game_history_list:
+        exploded_game_list.extend(
+            explode_game_into_moves(game, lichess_username)
+        )
+
+    # Convert explode_game_into_moves to a DataFrame
+    exploded_game_df = pd.DataFrame(
+        exploded_game_list,
+        columns=["game_id", "input_sequence", "target_move"]
+    )
+    exploded_game_df.to_csv(
+        f"data/processed/sequence_target_map_{lichess_username}.csv",
+        index="game_id"
+    )
+
     return {"status": "CLONING_COMPLETE"}
 
 
