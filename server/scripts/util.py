@@ -44,6 +44,39 @@ def init_gemini_model() -> genai.GenerativeModel:
     return model
 
 
+def san_to_uci(san_moves):
+    # If no board is provided, create a new one
+    board = chess.Board()
+    uci_moves = []
+
+    for san in san_moves:
+        # Convert the SAN move to a move object
+        move = board.parse_san(san)
+        # Convert the move object to UCI format
+        uci = move.uci()
+        uci_moves.append(uci)
+        # Make the move on the board
+        board.push(move)
+
+    return uci_moves
+
+
+# Function to evaluate a sequence of moves using Stockfish
+def determine_stockfish_intelligence_level(moves):
+    stockfish.set_position([])  # Reset the board to the initial position
+    player_score = 0  # Initialize player score
+
+    for move in moves:
+        best_move = stockfish.get_best_move()
+        if move == best_move:
+            player_score += 1  # Increment score if the player's move matches Stockfish's best move
+        stockfish.make_moves_from_current_position([move])
+
+    # Calculate the intelligence level as a percentage
+    intelligence_level = (player_score / len(moves)) * 100 if moves else 20
+    return intelligence_level
+
+
 def compute_next_move(
     partial_sequence: str,
     game_history_df: pd.DataFrame,
@@ -110,9 +143,16 @@ def compute_next_move(
             "source": "model"
         }
     except Exception as ex:
-        stockfish.set_fen_position(board.fen())
+        # Get stockfish intelligence level from partial_sequence which is a list of SAN moves
+        uci_moves = san_to_uci(partial_sequence_list)
+        intelligence_level = determine_stockfish_intelligence_level(
+            uci_moves
+        )
+        stockfish.set_position(partial_sequence_list)
+        stockfish.set_skill_level(intelligence_level)
         # Get the best move from Stockfish
         best_move = stockfish.get_best_move()
+
         return {
             "predicted_move": best_move,
             "source": "stockfish"
