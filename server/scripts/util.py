@@ -1,14 +1,18 @@
+import io
 import csv
 import os
 import berserk
 import pandas as pd
 import google.generativeai as genai
 import chess
+import chess.svg
 import ollama
 import json
 
+from PIL import Image
 from tqdm import tqdm
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+from stockfish import Stockfish
 
 
 from constants import LLM_NEXT_MOVE_PROMPT
@@ -17,10 +21,12 @@ LICHESS_API_TOKEN = os.environ["LICHESS_API_TOKEN"]
 berserk_session = berserk.TokenSession(LICHESS_API_TOKEN)
 berserk_client = berserk.Client(session=berserk_session)
 
+stockfish = Stockfish("/opt/homebrew/bin/stockfish")
+
 
 def get_game_history_df(lichess_username: str) -> pd.DataFrame:
     game_history_file_path = f"data/processed/sequence_target_map_{lichess_username}.csv"
-    game_history_df = pd.read_csv(game_history_file_path)
+    game_history_df = pd.read_csv(game_history_file_path, index_col=None)
     game_history_df = game_history_df.dropna()
     return game_history_df
 
@@ -29,13 +35,46 @@ def init_gemini_model() -> genai.GenerativeModel:
     GOOGLE_API_KEY = os.environ["GEMINI_API_KEY"]
     genai.configure(api_key=GOOGLE_API_KEY)
     model = genai.GenerativeModel(
-        "gemini-pro",
+        "models/gemini-pro",
         safety_settings={
             HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
             HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
         }
     )
     return model
+
+
+def san_to_uci(san_moves):
+    # If no board is provided, create a new one
+    board = chess.Board()
+    uci_moves = []
+
+    for san in san_moves:
+        # Convert the SAN move to a move object
+        move = board.parse_san(san)
+        # Convert the move object to UCI format
+        uci = move.uci()
+        uci_moves.append(uci)
+        # Make the move on the board
+        board.push(move)
+
+    return uci_moves
+
+
+# Function to evaluate a sequence of moves using Stockfish
+def determine_stockfish_intelligence_level(moves):
+    stockfish.set_position([])  # Reset the board to the initial position
+    player_score = 0  # Initialize player score
+
+    for move in moves:
+        best_move = stockfish.get_best_move()
+        if move == best_move:
+            player_score += 1  # Increment score if the player's move matches Stockfish's best move
+        stockfish.make_moves_from_current_position([move])
+
+    # Calculate the intelligence level as a percentage
+    intelligence_level = (player_score / len(moves)) * 100 if moves else 20
+    return intelligence_level
 
 
 def compute_next_move(
@@ -65,7 +104,12 @@ def compute_next_move(
         subset_df = game_history_df[
             game_history_df["input_sequence"].str.startswith(move)
         ]
+        # Keep only the last row from that game_id in subset_df even if not a duplicate
+        subset_df = subset_df.drop_duplicates(subset=["game_id"], keep="last")
+        subset_df = subset_df[["input_sequence", "target_move"]]
+        subset_df = subset_df.drop_duplicates()
         input_sequence_str = subset_df["input_sequence"].tolist()
+
         input_sequence_str = "\n".join(input_sequence_str)
         formatted_move_list += input_sequence_str
 
@@ -80,18 +124,39 @@ def compute_next_move(
         formatted_partial_sequence=formatted_partial_sequence
     )
 
-    response = ollama.generate(
-        prompt=prompt,
-        model="gemma:2b",
-    )
-    response = str(response.get("response")).strip()
-    response = json.loads(response)
-    response = response["move"]
-    return {
-        "predicted_move": response,
-        "source": "model"
-    }
+    try:
+        response = model.generate_content(prompt)
+        response = str(response.text).strip()
+        # response = ollama.generate(
+        #     prompt=prompt,
+        #     model="gemma:2b",
+        # )
+        # response = str(response.get("response")).strip()
 
+        response = json.loads(response)
+        response = response["move"]
+        if response not in legal_move_list:
+            response = list(legal_move_list)[0]
+
+        return {
+            "predicted_move": response,
+            "source": "model"
+        }
+    except Exception as ex:
+        # Get stockfish intelligence level from partial_sequence which is a list of SAN moves
+        uci_moves = san_to_uci(partial_sequence_list)
+        intelligence_level = determine_stockfish_intelligence_level(
+            uci_moves
+        )
+        stockfish.set_position(partial_sequence_list)
+        stockfish.set_skill_level(intelligence_level)
+        # Get the best move from Stockfish
+        best_move = stockfish.get_best_move()
+
+        return {
+            "predicted_move": best_move,
+            "source": "stockfish"
+        }
 
 
 def get_games_and_moves_by_username(username: str) -> list[dict]:
@@ -127,11 +192,11 @@ def get_games_and_moves_by_username(username: str) -> list[dict]:
 
 
 def get_cached_usernames() -> set[str]:
-    csv_list = os.listdir("data/processed")
+    csv_list = os.listdir("data/raw")
     csv_list = [csv_file for csv_file in csv_list if csv_file.endswith(".csv")]
     cached_username_set = set()
     for csv_file in csv_list:
-        username = csv_file.replace("sequence_target_map_", "")
+        username = csv_file.replace("games_", "")
         username = username.replace(".csv", "")
         cached_username_set.add(username)
     return cached_username_set
