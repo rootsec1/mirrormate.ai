@@ -30,7 +30,7 @@ def main():
     if CURRENT_WORK_DIR.endswith("scripts"):
         os.chdir("../data/processed")
     else:
-        os.chdir("data/processed")
+        os.chdir("../data/processed")
     exploded_game_df.to_csv(
         f"sequence_target_map_{lichess_username}.csv",
         index=False

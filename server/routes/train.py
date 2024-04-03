@@ -2,9 +2,9 @@ from fastapi import APIRouter
 
 # Local
 from scripts.util import *
+from chess_client import ChessClient
 
 router = APIRouter()
-gemini_model = init_gemini_model()
 
 
 @router.get("/persona/{lichess_username}")
@@ -23,7 +23,7 @@ async def train_persona(lichess_username: str):
         "",
         "ANONYMOUS"
     )
-    game_history_df.to_csv(f"data/raw/games_{lichess_username}.csv")
+    game_history_df.to_csv(f"../data/raw/games_{lichess_username}.csv")
 
     exploded_game_list = []
     for game in game_history_list:
@@ -37,7 +37,7 @@ async def train_persona(lichess_username: str):
         columns=["game_id", "input_sequence", "target_move"]
     )
     exploded_game_df.to_csv(
-        f"data/processed/sequence_target_map_{lichess_username}.csv",
+        f"../data/processed/sequence_target_map_{lichess_username}.csv",
         index="game_id"
     )
 
@@ -48,9 +48,9 @@ async def train_persona(lichess_username: str):
 async def get_next_move(lichess_username: str, partial_sequence: str):
     """Return the next move in the game."""
     game_history_df = get_game_history_df(lichess_username)
-    predicted_move = compute_next_move(
-        partial_sequence,
-        game_history_df,
-        gemini_model
+    chess_client = ChessClient(
+        move_list_in_san=partial_sequence.strip().split(" "),
+        lichess_username=lichess_username
     )
+    predicted_move = chess_client.compute_next_move(game_history_df)
     return predicted_move
