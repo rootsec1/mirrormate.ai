@@ -62,7 +62,7 @@ def main():
     print(f"Vocabulary length: {len(vocab_list)}")
     # vocab: key=word, value=index
     # reverse_vocab: key=index, value=word
-    with open("data/processed/vocabulary.txt", "w") as f:
+    with open("../data/processed/vocabulary.txt", "w") as f:
         for word in vocab_list:
             f.write(f"{word}\n")
     print("Vocabulary written to file.")

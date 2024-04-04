@@ -12,10 +12,17 @@ import React, { useMemo, useState } from "react";
 import { Chessboard } from "react-chessboard";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
+import ReactMarkdown from "react-markdown";
+import gfm from "remark-gfm";
+
 // Local
-import { CHESS_BOARD_ALL_SQUARES } from "../constants";
+import {
+  CHESS_BOARD_ALL_SQUARES,
+  getPromptForMoveAnalysis,
+} from "../constants";
 import { HistoryOutlined, InsightsOutlined } from "@mui/icons-material";
 import { BackgroundGradient } from "../components/ui/background-gradient";
+import { promptLLM } from "../util/llm";
 
 function CustomAppBar() {
   return <div className="text-2xl ml-4 mt-2">mirrormate.ai</div>;
@@ -28,6 +35,7 @@ function PaneOneComponent({
   moveHistory,
   setMoveHistory,
   setError,
+  setAnalysisText,
 }) {
   const game = useMemo(() => new Chess(), []);
   const [gamePosition, setGamePosition] = useState(game.fen());
@@ -69,6 +77,8 @@ function PaneOneComponent({
       setGamePosition(game.fen());
       setMoveHistory((prev) => [...prev, move.san]); // Add the new move in SAN format to the history
 
+      setAnalysisText("Analyzing");
+
       // Call API from backend to predict the opponent's move
       const predictedMoveInSan = await predictNextMove([
         ...moveHistory,
@@ -82,6 +92,17 @@ function PaneOneComponent({
         if (predictedMove) {
           setGamePosition(game.fen()); // Update the position with the new move
           setMoveHistory((prev) => [...prev, predictedMoveInSan]); // Add the predicted move to history
+
+          // Move analysis
+          const movesInSanString = moveHistory.join(" ").trim();
+          if (movesInSanString !== "") {
+            const prompt = getPromptForMoveAnalysis(
+              movesInSanString,
+              playAsColor
+            );
+            const llmResponse = (await promptLLM(prompt)).trim();
+            setAnalysisText(llmResponse);
+          }
         } else {
           // Handle illegal predicted moves or other issues
           setError(`Predicted move is illegal: ${predictedMoveInSan}`);
@@ -144,7 +165,41 @@ function PaneOneComponent({
   );
 }
 
-function PaneTwoComponent({ moveHistory, error, setError }) {
+function PaneThreeComponent({ analysisText }) {
+  return (
+    <div className="flex flex-col h-[98%]">
+      <Card
+        elevation={16}
+        className="flex-1"
+        sx={{
+          backgroundColor: "white",
+          color: "black",
+          borderRadius: 2,
+          marginTop: "3%",
+        }}
+      >
+        <CardContent>
+          <span className="text-2xl font-medium">
+            Move Analysis&nbsp;&nbsp;
+            <InsightsOutlined fontSize="large" />
+          </span>{" "}
+          <br />
+          <ReactMarkdown
+            remarkPlugins={[gfm]}
+            children={analysisText}
+            components={{
+              table: ({ node, ...props }) => (
+                <table className="md-table" {...props} />
+              ),
+            }}
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function PaneTwoComponent({ moveHistory }) {
   function getMoveHistoryComponent() {
     return moveHistory.map((moveInSan, index) => (
       <Chip
@@ -185,24 +240,51 @@ function PaneTwoComponent({ moveHistory, error, setError }) {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
 
-      <Card
-        elevation={16}
-        className="flex-1"
-        sx={{
-          backgroundColor: "white",
-          color: "black",
-          borderRadius: 2,
-          marginTop: "3%",
-        }}
+export default function GamePage() {
+  const location = useLocation();
+  const [moveHistory, setMoveHistory] = useState([]); // New state variable for move history
+  const [error, setError] = useState(null);
+  const [analysisText, setAnalysisText] = useState(
+    "Not enough data to analyze"
+  ); // New state variable for analysis text
+
+  const lichessUsernameTarget = location.state.lichess_username_target;
+  const usernameSelf = location.state.username_self;
+  const playAsColor = location.state.play_as_color;
+
+  return (
+    <div className="h-dvh p-4">
+      <CustomAppBar />
+
+      <Grid
+        container
+        sx={{ justifyContent: "space-around", display: "flex", flex: 1 }}
+        spacing={1}
       >
-        <CardContent>
-          <span className="text-2xl font-medium">
-            Move Analysis&nbsp;&nbsp;
-            <InsightsOutlined fontSize="large" />
-          </span>{" "}
-        </CardContent>
-      </Card>
+        <Grid item lg={3}>
+          <PaneThreeComponent analysisText={analysisText} />
+        </Grid>
+
+        <Grid item lg={5.5}>
+          <PaneOneComponent
+            lichessUsernameTarget={lichessUsernameTarget}
+            usernameSelf={usernameSelf}
+            playAsColor={playAsColor}
+            moveHistory={moveHistory}
+            setMoveHistory={setMoveHistory}
+            setError={setError}
+            setAnalysisText={setAnalysisText}
+          />
+        </Grid>
+
+        <Grid item lg={3}>
+          <PaneTwoComponent moveHistory={moveHistory} />
+        </Grid>
+      </Grid>
 
       {error && (
         <Snackbar
@@ -219,47 +301,6 @@ function PaneTwoComponent({ moveHistory, error, setError }) {
           />
         </Snackbar>
       )}
-    </div>
-  );
-}
-
-export default function GamePage() {
-  const location = useLocation();
-  const [moveHistory, setMoveHistory] = useState([]); // New state variable for move history
-  const [error, setError] = useState(null);
-
-  const lichessUsernameTarget = location.state.lichess_username_target;
-  const usernameSelf = location.state.username_self;
-  const playAsColor = location.state.play_as_color;
-
-  return (
-    <div className="h-dvh p-4">
-      <CustomAppBar />
-
-      <Grid
-        container
-        sx={{ justifyContent: "space-around", display: "flex", flex: 1 }}
-        spacing={1}
-      >
-        <Grid item lg={5.5}>
-          <PaneOneComponent
-            lichessUsernameTarget={lichessUsernameTarget}
-            usernameSelf={usernameSelf}
-            playAsColor={playAsColor}
-            moveHistory={moveHistory}
-            setMoveHistory={setMoveHistory}
-            setError={setError}
-          />
-        </Grid>
-
-        <Grid item lg={5.5}>
-          <PaneTwoComponent
-            moveHistory={moveHistory}
-            error={error}
-            setError={setError}
-          />
-        </Grid>
-      </Grid>
     </div>
   );
 }

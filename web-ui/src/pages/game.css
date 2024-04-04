@@ -1,0 +1,11 @@
+/* MarkdownTableStyles.css */
+.md-table {
+  border-collapse: collapse;
+}
+
+.md-table th,
+.md-table td {
+  border: 1px solid black;
+  padding: 8px;
+  text-align: left;
+}

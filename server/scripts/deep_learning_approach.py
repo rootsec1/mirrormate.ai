@@ -99,7 +99,7 @@ def decode_model_prediction(prediction_list: list, reverse_vocabulary_dict: dict
 
 # Create dataset
 def create_dataset(lichess_username: str) -> pd.DataFrame:
-    data_df = pd.read_csv(f"data/raw/games_{lichess_username}.csv")
+    data_df = pd.read_csv(f"../data/raw/games_{lichess_username}.csv")
     output_df = pd.DataFrame()
     game_list = []
 
@@ -223,7 +223,7 @@ def main():
 
     model = train_model(dataset_df)
 
-    save_model(model, "models/chess_nn_model.pth")
+    save_model(model, "../models/chess_nn_model.pth")
 
 
 if __name__ == "__main__":

@@ -25,7 +25,7 @@ def main():
     if CURRENT_WORK_DIR.endswith("scripts"):
         os.chdir("../data/raw")
     else:
-        os.chdir("data/raw")
+        os.chdir("../data/raw")
     df.to_csv(f"games_{lichess_username}.csv")
     print("Export complete.")
 
