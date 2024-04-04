@@ -1,3 +1,4 @@
+import re
 import chess
 import pandas as pd
 
@@ -28,6 +29,9 @@ class ChessClient:
         board = chess.Board()
         uci_moves = []
         for san in self.move_list_in_san:
+            san = san.strip()
+            if san == "":
+                continue
             # Convert the SAN move to a move object
             move = board.parse_san(san)
             # Convert the move object to UCI format
@@ -86,10 +90,10 @@ class ChessClient:
     def stockfish_best_move_search(self):
         # Get stockfish intelligence level from partial_sequence which is a list of SAN moves
         intelligence_level = self.determine_stockfish_intelligence_level()
-        __stockfish__.set_position(self.move_list_in_san)
+        __stockfish__.set_position(self.move_list_in_uci)
         __stockfish__.set_skill_level(intelligence_level)
         # Get the best move from Stockfish
-        best_move = __stockfish__.get_best_move()
+        best_move = __stockfish__.get_top_moves(1)[0].get("Move")
 
         return {
             "predicted_move": best_move,
@@ -98,6 +102,8 @@ class ChessClient:
 
     def compute_next_move(self, game_history_df: pd.DataFrame) -> str:
         partial_sequence_str = " ".join(self.move_list_in_san).strip()
+        # Remove all special chars from the SAN moves except space (" ") and hyphen ("-")
+        partial_sequence_str = re.sub(r"[^a-zA-Z0-9\s-]", "", partial_sequence_str)
 
         # Setup Board
         board = chess.Board()

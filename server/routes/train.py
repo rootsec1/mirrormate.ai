@@ -9,6 +9,10 @@ router = APIRouter()
 
 @router.get("/persona/{lichess_username}")
 async def train_persona(lichess_username: str):
+    cached_username_set = get_cached_usernames()
+    if lichess_username in cached_username_set:
+        return {"status": "CLONING_COMPLETE"}
+
     game_history_list = get_games_and_moves_by_username(lichess_username)
     game_history_df = pd.DataFrame(game_history_list)
     game_history_df["white_player"] = game_history_df["white_player"].replace(

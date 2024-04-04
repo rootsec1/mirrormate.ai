@@ -67,3 +67,30 @@ export const CHESS_BOARD_ALL_SQUARES = [
   "g8",
   "h8",
 ];
+
+export function getPromptForMoveAnalysis(moves_in_san_str, playerColor) {
+  const opponentColor = playerColor === "White" ? "Black" : "White";
+  const firstOrSecondMove = playerColor === "White" ? "second" : "first";
+
+  const promptTemplate = `
+  This is the list of SAN moves on a chess board so far: ${moves_in_san_str}
+
+  You are a chess grandmaster and a tutor. The goal is to understand the opponent's play style and behavior.
+  I am the ${playerColor} player. Every alternative move starting from the ${firstOrSecondMove} move is my opponent's (${opponentColor}'s) move.
+  Give me a short analysis that answers the following questions so that it guides me to beat my opponent.
+  Generate the output in GitHub Flavored Markdown, fill it with tables of probabilities and more. Use percentages and numbers.
+  Use all the features of markdown to give me a rich analysis.
+  Use richly formatted bullet points in place of tables.
+
+  Do not recommend any moves.
+  Do not include "notes" or any other disclaimers.
+
+  - Which opening is happening currently?
+  - Which side is opponent trying to attack?
+  - What is their play style?
+  `;
+
+  console.log(promptTemplate);
+
+  return promptTemplate;
+}
