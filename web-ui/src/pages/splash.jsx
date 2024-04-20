@@ -24,7 +24,7 @@ import { MultiStepLoader as Loader } from "../components/ui/multi-step-loader";
 import { TextGenerateEffect } from "../components/ui/text-generate-effect";
 
 // Constants
-const LOADER_DURATION = 2000;
+const LOADER_DURATION = 3000;
 
 const getLoadingStates = (lichessUsername) => [
   {
@@ -86,6 +86,7 @@ function LichessUsernameInputDialogComponent({ isOpen, setIsOpen, onSubmit }) {
             fullWidth
             variant="standard"
           />
+          Cloned Models: "ritutoshniwal"
           <FormLabel id="row-radio-buttons-group-label" className="mt-4">
             Play as
           </FormLabel>
@@ -139,7 +140,10 @@ export default function SplashPage() {
     setIsDialogOpen(false);
     const lichessUsername = formJson["lichess_username_target"];
     setUsername(lichessUsername);
-    triggerClonePersonaForUsername(formJson);
+    // Run function after 10 seconds
+    setTimeout(() => {
+      triggerClonePersonaForUsername(formJson);
+    }, LOADER_DURATION * 5);
   }
 
   return (
