@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import chess
 import torch
 import torch.nn as nn
@@ -7,17 +6,20 @@ import torch.optim as optim
 
 from torch.utils.data import DataLoader, Dataset
 from sklearn.model_selection import GroupShuffleSplit
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.preprocessing import LabelEncoder
 
-
+# Initialize label encoder and hyperparameters
 label_encoder = LabelEncoder()
 NUM_EPOCHS = 25
 BATCH_SIZE = 12
 LEARNING_RATE = 0.001
 
+# Define a PyTorch Dataset for chess data
 
-# Dataset and DataLoader
+
 class ChessDataset(Dataset):
+    """A PyTorch Dataset for chess data."""
+
     def __init__(self, features, labels):
         self.features = features
         self.labels = labels
@@ -28,20 +30,23 @@ class ChessDataset(Dataset):
     def __getitem__(self, index):
         return self.features[index], self.labels[index]
 
+# Define a PyTorch neural network for chess move prediction
 
-# Model definition
+
 class ChessNN(nn.Module):
+    """A PyTorch neural network for chess move prediction."""
+
     def __init__(self, input_dim, output_dim):
         super(ChessNN, self).__init__()
-        # Simplified network architecture
-        self.layer1 = nn.Linear(input_dim, 256)  # Reduced from 512 to 256
-        self.layer2 = nn.Linear(256, 128)  # A new, smaller intermediate layer
-        # Output layer remains the same
+        # Define the network architecture
+        self.layer1 = nn.Linear(input_dim, 256)
+        self.layer2 = nn.Linear(256, 128)
         self.output_layer = nn.Linear(128, output_dim)
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.3)  # Reduced dropout rate
+        self.dropout = nn.Dropout(0.3)
 
     def forward(self, x):
+        # Define the forward pass
         x = self.relu(self.layer1(x))
         x = self.dropout(x)
         x = self.relu(self.layer2(x))
@@ -49,31 +54,26 @@ class ChessNN(nn.Module):
         x = self.output_layer(x)
         return x
 
-
 # Function to convert the board to a flat list
-def board_to_flat_list(board):
-    # Get the board as a string in ASCII format
-    board_string = board.__str__()
-    # Split the board string into rows
-    rows = board_string.split("\n")
-    # Initialize an empty list to store the flat board
-    flat_list = []
-    # Iterate through each row
-    for row in rows:
-        # Split the row by spaces to get individual pieces
-        pieces = row.split(" ")
-        # Extend the flat list with the pieces
-        flat_list.extend(pieces)
 
-    # Replace "." with None
+
+def board_to_flat_list(board):
+    """Convert a chess board to a flat list."""
+    board_string = board.__str__()
+    rows = board_string.split("\n")
+    flat_list = []
+    for row in rows:
+        pieces = row.split(" ")
+        flat_list.extend(pieces)
     flat_list = [None if piece == "." else piece for piece in flat_list]
     return flat_list
 
+# Function to get the vocabulary of the chess board
 
-# Vocabulary
+
 def get_vocabulary() -> tuple[dict, dict]:
+    """Get the vocabulary of the chess board."""
     fresh_chess_board = chess.Board()
-    # Get all unique characters in fresh_chess_board
     unique_characters = list(set(fresh_chess_board.board_fen()))
     unique_characters = [char for char in unique_characters if char.isalpha()]
     unique_characters.sort()
@@ -82,23 +82,29 @@ def get_vocabulary() -> tuple[dict, dict]:
     reverse_vocabulary_dict = {i: char for char, i in vocabulary_dict.items()}
     return vocabulary_dict, reverse_vocabulary_dict
 
+# Function to encode the DataFrame using the vocabulary
 
-# For all values in X, transform string to int using vocabulary_dict
+
 def encode_df(df: pd.DataFrame, vocabulary_dict: dict) -> pd.DataFrame:
+    """Encode the DataFrame using the vocabulary."""
     df = df.fillna("EMPTY")
     df = df.map(lambda x: vocabulary_dict[x] if x in vocabulary_dict else x)
     return df
 
+# Function to decode the model prediction
+
 
 def decode_model_prediction(prediction_list: list, reverse_vocabulary_dict: dict) -> list[str]:
+    """Decode the model prediction."""
     ret_list = [reverse_vocabulary_dict[i] for i in prediction_list]
-    # If ret_list contains "EMPTY", replace it with None
     ret_list = [None if x == "EMPTY" else x for x in ret_list]
     return ret_list
 
+# Function to create the dataset
 
-# Create dataset
+
 def create_dataset(lichess_username: str) -> pd.DataFrame:
+    """Create the dataset."""
     data_df = pd.read_csv(f"../data/raw/games_{lichess_username}.csv")
     output_df = pd.DataFrame()
     game_list = []
@@ -130,19 +136,17 @@ def create_dataset(lichess_username: str) -> pd.DataFrame:
     output_df = pd.DataFrame(game_list)
     return output_df
 
+# Function to split the dataset into train and validation
 
-# Split dataset into train and validation
+
 def get_dataset_split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    # Rename first col to game_id and last col to target_move
+    """Split the dataset into train and validation."""
     df = df.rename(columns={0: "game_id", len(df.columns)-1: "target_move"})
 
-    # Assuming df is your DataFrame and has columns for features and 'game_id'
-    X = df.drop(['target_move', 'game_id'], axis=1)  # Features
+    X = df.drop(['target_move', 'game_id'], axis=1)
     y = df['target_move']
-    # Fit and transform the 'target_move' to integer
     y_integers = label_encoder.fit_transform(y.values)
 
-    # Use GroupShuffleSplit to keep games together
     gss = GroupShuffleSplit(test_size=0.2, n_splits=1, random_state=0)
     train_idx, val_idx = next(gss.split(X, y, groups=df['game_id']))
 
@@ -152,12 +156,13 @@ def get_dataset_split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.
     print("Shapes:", X_train.shape, X_val.shape, y_train.shape, y_val.shape)
     return X_train, X_val, y_train, y_val
 
+# Function to train the model
 
-# Train model
+
 def train_model(df: pd.DataFrame):
+    """Train the model."""
     X_train, X_val, y_train, y_val = get_dataset_split(df)
 
-    # Convert to PyTorch tensors
     X_train_tensor = torch.FloatTensor(X_train.values)
     y_train_tensor = torch.LongTensor(y_train)
     X_val_tensor = torch.FloatTensor(X_val.values)
@@ -169,8 +174,6 @@ def train_model(df: pd.DataFrame):
         train_dataset, batch_size=BATCH_SIZE, shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-    # Assuming the input dimension is the number of features from your board states,
-    # and output_dim is the number of unique chess moves.
     input_dim = int(X_train.shape[1])
     output_dim = int(df.iloc[:, -1:].nunique().values[0])
 
@@ -207,12 +210,18 @@ def train_model(df: pd.DataFrame):
     print(f'Accuracy: {100 * correct / total}%')
     return model
 
+# Function to save the model
+
 
 def save_model(model: ChessNN, model_name: str):
+    """Save the model."""
     torch.save(model, model_name)
+
+# Main function
 
 
 def main():
+    """Main function."""
     lichess_username = "ritutoshniwal"
     vocabulary_dict, reverse_vocabulary_dict = get_vocabulary()
 
@@ -226,5 +235,6 @@ def main():
     save_model(model, "../models/chess_nn_model.pth")
 
 
+# Run the main function if this script is run as the main module
 if __name__ == "__main__":
     main()

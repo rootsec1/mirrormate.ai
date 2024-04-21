@@ -17,7 +17,7 @@ import { motion } from "framer-motion";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Local
+// Importing local components
 import { LampContainer } from "../components/ui/lamp";
 import { MovingBorderButton } from "../components/ui/moving-border";
 import { MultiStepLoader as Loader } from "../components/ui/multi-step-loader";
@@ -26,6 +26,11 @@ import { TextGenerateEffect } from "../components/ui/text-generate-effect";
 // Constants
 const LOADER_DURATION = 3000;
 
+/**
+ * Function to get loading states
+ * @param {string} lichessUsername - The username on Lichess
+ * @returns {Array} - An array of loading states
+ */
 const getLoadingStates = (lichessUsername) => [
   {
     text: `Looking up “${lichessUsername}” on Lichess`,
@@ -41,6 +46,13 @@ const getLoadingStates = (lichessUsername) => [
   },
 ];
 
+/**
+ * Component for Lichess username input dialog
+ * @param {Object} props - The properties passed to the component
+ * @param {boolean} props.isOpen - Whether the dialog is open
+ * @param {Function} props.setIsOpen - Function to set whether the dialog is open
+ * @param {Function} props.onSubmit - Function to handle form submission
+ */
 function LichessUsernameInputDialogComponent({ isOpen, setIsOpen, onSubmit }) {
   return (
     <Dialog
@@ -111,11 +123,18 @@ function LichessUsernameInputDialogComponent({ isOpen, setIsOpen, onSubmit }) {
   );
 }
 
+/**
+ * Splash page component
+ */
 export default function SplashPage() {
   const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [username, setUsername] = useState(null);
 
+  /**
+   * Function to trigger clone persona for username
+   * @param {Object} formJson - The form data in JSON format
+   */
   async function triggerClonePersonaForUsername(formJson) {
     const lichessUsername = formJson["lichess_username_target"];
 
@@ -132,10 +151,17 @@ export default function SplashPage() {
     }
   }
 
+  /**
+   * Function to handle get started button click
+   */
   function onGetStartedButtonClick() {
     setIsDialogOpen(true);
   }
 
+  /**
+   * Function to handle Lichess username form submission
+   * @param {Object} formJson - The form data in JSON format
+   */
   function onSubmitLichessUsernameForm(formJson) {
     setIsDialogOpen(false);
     const lichessUsername = formJson["lichess_username_target"];
