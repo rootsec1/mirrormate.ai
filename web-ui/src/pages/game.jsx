@@ -24,10 +24,12 @@ import { HistoryOutlined, InsightsOutlined } from "@mui/icons-material";
 import { BackgroundGradient } from "../components/ui/background-gradient";
 import { promptLLM } from "../util/llm";
 
+// CustomAppBar component for the top bar of the application
 function CustomAppBar() {
   return <div className="text-2xl ml-4 mt-2">mirrormate.ai</div>;
 }
 
+// PaneOneComponent is the main game board component
 function PaneOneComponent({
   lichessUsernameTarget,
   usernameSelf,
@@ -37,9 +39,11 @@ function PaneOneComponent({
   setError,
   setAnalysisText,
 }) {
+  // Initialize a new game
   const game = useMemo(() => new Chess(), []);
   const [gamePosition, setGamePosition] = useState(game.fen());
 
+  // Function to find the position of the king on the board
   function findKingPosition(game, color) {
     for (let square of CHESS_BOARD_ALL_SQUARES) {
       const piece = game.get(square);
@@ -50,6 +54,7 @@ function PaneOneComponent({
     return null; // Return null if no king found (should never happen in a valid game)
   }
 
+  // Function to predict the next move using an API
   async function predictNextMove(movesInSanList) {
     const movesInSanString = movesInSanList.join(" ");
     const endpointUrl = `/train/next-move/?lichess_username=${lichessUsernameTarget}&partial_sequence=${movesInSanString}`;
@@ -59,7 +64,7 @@ function PaneOneComponent({
     return predictedMoveInSan;
   }
 
-  // This function will be triggered when a piece is moved on the board
+  // Function to handle the event when a piece is moved on the board
   async function onDrop(sourceSquare, targetSquare, piece) {
     try {
       setError(null);
@@ -165,6 +170,7 @@ function PaneOneComponent({
   );
 }
 
+// PaneThreeComponent is the component for displaying move analysis
 function PaneThreeComponent({ analysisText }) {
   return (
     <div className="flex flex-col h-[98%]">
@@ -199,6 +205,7 @@ function PaneThreeComponent({ analysisText }) {
   );
 }
 
+// PaneTwoComponent is the component for displaying move history
 function PaneTwoComponent({ moveHistory }) {
   function getMoveHistoryComponent() {
     return moveHistory.map((moveInSan, index) => (
@@ -244,6 +251,7 @@ function PaneTwoComponent({ moveHistory }) {
   );
 }
 
+// GamePage is the main component for the game page
 export default function GamePage() {
   const location = useLocation();
   const [moveHistory, setMoveHistory] = useState([]); // New state variable for move history

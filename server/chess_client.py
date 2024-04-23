@@ -9,22 +9,34 @@ from constants import STOCKFISH_PATH
 from llm_client import LLMClient
 from scripts.util import make_prediction_using_model
 
+# Initialize Stockfish with the given path
 __stockfish__ = Stockfish(STOCKFISH_PATH)
 
 
 class ChessClient:
-    move_list_in_san: list[str] = []
-    move_list_in_uci: list[str] = []
-    lichess_username: str = None
-    llm_client: LLMClient = None
+    """
+    A client to handle chess game operations, including move conversions, 
+    determining intelligence level, caching, predicting moves, and interacting with Stockfish.
+    """
+
+    move_list_in_san: list[str] = []  # List of moves in Standard Algebraic Notation (SAN)
+    move_list_in_uci: list[str] = []  # List of moves in Universal Chess Interface (UCI)
+    lichess_username: str = None  # Username of the player on Lichess
+    llm_client: LLMClient = None  # Client for Lichess Ladder Monitor (LLM)
 
     def __init__(self, move_list_in_san: list[str], lichess_username: str):
+        """
+        Initialize the ChessClient with a list of moves in SAN and a Lichess username.
+        """
         self.move_list_in_san = move_list_in_san
         self.move_list_in_uci = self.san_to_uci()
         self.lichess_username = lichess_username
         self.llm_client = LLMClient()
 
     def san_to_uci(self):
+        """
+        Convert a list of moves from Standard Algebraic Notation (SAN) to Universal Chess Interface (UCI).
+        """
         # If no board is provided, create a new one
         board = chess.Board()
         uci_moves = []
@@ -41,8 +53,10 @@ class ChessClient:
             board.push(move)
         return uci_moves
 
-    # Function to evaluate a sequence of moves using Stockfish
     def determine_stockfish_intelligence_level(self):
+        """
+        Evaluate a sequence of moves using Stockfish and determine the intelligence level of the player.
+        """
         # Reset the board to the initial position
         __stockfish__.set_position([])
         player_score = 0  # Initialize player score
@@ -59,8 +73,10 @@ class ChessClient:
             intelligence_level -= 4
         return intelligence_level
 
-    # Option A
     def cache_search(self, partial_sequence_str: str, game_history_df: pd.DataFrame):
+        """
+        Search for a partial sequence of moves in the game history cache.
+        """
         subset_df = game_history_df[
             game_history_df["input_sequence"] == partial_sequence_str
         ]
@@ -73,8 +89,10 @@ class ChessClient:
             "source": "cache"
         }
 
-    # Option B
     def predict_using_model(self, partial_sequence_str: str, legal_move_set: set):
+        """
+        Predict the next move using a trained model.
+        """
         result = make_prediction_using_model(
             partial_sequence_str,
             lichess_username=self.lichess_username
@@ -86,8 +104,10 @@ class ChessClient:
             "source": "model"
         }
 
-    # Option C
     def stockfish_best_move_search(self):
+        """
+        Determine the best move according to Stockfish.
+        """
         # Get stockfish intelligence level from partial_sequence which is a list of SAN moves
         intelligence_level = self.determine_stockfish_intelligence_level()
         __stockfish__.set_position(self.move_list_in_uci)
@@ -101,6 +121,9 @@ class ChessClient:
         }
 
     def compute_next_move(self, game_history_df: pd.DataFrame) -> str:
+        """
+        Compute the next move using a combination of cache search, model prediction, and Stockfish.
+        """
         partial_sequence_str = " ".join(self.move_list_in_san).strip()
         # Remove all special chars from the SAN moves except space (" ") and hyphen ("-")
         partial_sequence_str = re.sub(r"[^a-zA-Z0-9\s-]", "", partial_sequence_str)

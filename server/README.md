@@ -1,1 +1,0 @@
-# mirrormate-management-service
