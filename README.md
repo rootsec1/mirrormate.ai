@@ -2,6 +2,11 @@
 
 Play a game of chess against an AI clone of your opponent enabling you to understand their play style, strengths and weaknesses before the actual game.
 
+## Links
+Slide deck: [here](https://docs.google.com/presentation/d/1LaD0ZKy83fT_YoSDWSjR2DRLnF9ad57PjaYrrN4UL3Y/edit?usp=sharing)
+
+Presentation video: [here](https://duke.box.com/s/bc1anhyi1udpc8w84q74q0a8yss9lia1)
+
 ## Screenshots
 <img width="1242" alt="Screenshot 2024-04-03 at 1 44 39 AM" src="https://github.com/rootsec1/mirrormate.ai/assets/20264867/462216c3-903c-4914-aa0a-938e9c551b1e">
 <img width="1470" alt="Screenshot 2024-04-03 at 2 00 17 AM" src="https://github.com/rootsec1/mirrormate.ai/assets/20264867/2b2c9214-df1c-4e16-b277-517e5b8f3f55">
