@@ -1,4 +1,5 @@
 site_name: MirrorMate AI Documentation
+repo_url: https://github.com/rootsec1/mirrormate.ai
 nav:
   - Home: index.md
 docs_dir: ./docs
