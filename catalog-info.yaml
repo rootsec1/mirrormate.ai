@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: mirrormate.ai
+  annotations:
+    github.com/project-slug: rootsec1/mirrormate.ai
+spec:
+  type: other
+  lifecycle: unknown
+  owner: guests
