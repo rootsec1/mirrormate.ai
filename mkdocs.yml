@@ -1,6 +1,6 @@
 site_name: MirrorMate AI Documentation
 nav:
   - Home: index.md
-docs_dir: docs
+docs_dir: input/docs
 plugins:
   - techdocs-core
