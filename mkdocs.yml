@@ -1,6 +1,6 @@
 site_name: MirrorMate AI Documentation
+site_description: Documentation for MirrorMate AI APIs and SDKs
 repo_url: https://github.com/rootsec1/mirrormate.ai
-docs_dir: docs
 
 nav:
   - Home: index.md
