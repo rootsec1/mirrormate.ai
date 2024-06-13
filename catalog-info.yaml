@@ -4,8 +4,8 @@ metadata:
   name: mirrormate.ai
   annotations:
     github.com/project-slug: rootsec1/mirrormate.ai
-    backstage.io/techdocs-ref: "dir:./docs"
+    backstage.io/techdocs-ref: "dir:."
 spec:
-  type: other
+  type: documentation
   lifecycle: unknown
   owner: guests
