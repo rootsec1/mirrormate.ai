@@ -4,6 +4,13 @@ repo_url: https://github.com/rootsec1/mirrormate.ai
 
 nav:
   - Home: index.md
-
+  - Integration:
+      - API Reference: index.md
+      - SDK Reference (Python): index.md
+      - SDK Reference (Java): index.md
+      - SDK Reference (JavaScript): index.md
+      - SDK Reference (Ruby): index.md
+      - SDK Reference (Go): index.md
+  - Contribution: index.md
 plugins:
   - techdocs-core
