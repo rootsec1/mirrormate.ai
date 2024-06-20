@@ -9,3 +9,6 @@ spec:
   type: documentation
   lifecycle: experimental
   owner: guests
+  consumesApis:
+    - api-node-auth
+    
