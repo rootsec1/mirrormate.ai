@@ -9,6 +9,7 @@ spec:
   type: documentation
   lifecycle: experimental
   owner: guests
+  dependsOn:
+    - component:default/node-auth-service
   consumesApis:
     - api-node-auth
-    
